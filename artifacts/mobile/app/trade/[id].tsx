@@ -48,6 +48,8 @@ export default function TradeDetailScreen() {
   const [sellAmount, setSellAmount] = useState("");
   const [sellNotes, setSellNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   if (!trade) {
     return (
@@ -119,29 +121,19 @@ export default function TradeDetailScreen() {
     ]);
   }
 
-  async function handleDeleteTrade() {
-    Alert.alert(
-      "Delete Trade",
-      "Are you sure you want to delete this trade?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            await deleteTrade(tradeId);
-            try {
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-            } catch {}
-            if (router.canGoBack()) {
-              router.back();
-            } else {
-              router.replace("/(tabs)/trades");
-            }
-          },
-        },
-      ]
-    );
+  async function handleConfirmDelete() {
+    if (deleting) return;
+    setDeleting(true);
+    try {
+      await deleteTrade(tradeId);
+      try {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      } catch {}
+      router.navigate({ pathname: "/(tabs)/trades" });
+    } catch {
+      setDeleting(false);
+      setConfirmingDelete(false);
+    }
   }
 
   const profitColor =
@@ -572,16 +564,46 @@ export default function TradeDetailScreen() {
           </>
         )}
 
-        <TouchableOpacity
-          style={[styles.deleteButton, { borderColor: colors.destructive }]}
-          onPress={handleDeleteTrade}
-          activeOpacity={0.7}
-        >
-          <Feather name="trash-2" size={16} color={colors.destructive} />
-          <Text style={[styles.deleteButtonText, { color: colors.destructive }]}>
-            Delete Trade
-          </Text>
-        </TouchableOpacity>
+        {confirmingDelete ? (
+          <View style={styles.deleteConfirmRow}>
+            <Text style={[styles.deleteConfirmText, { color: colors.foreground }]}>
+              এই ট্রেড মুছবেন?
+            </Text>
+            <View style={styles.deleteConfirmButtons}>
+              <TouchableOpacity
+                style={[styles.deleteConfirmCancel, { backgroundColor: colors.muted }]}
+                onPress={() => setConfirmingDelete(false)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.deleteButtonText, { color: colors.mutedForeground }]}>
+                  বাতিল
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.deleteConfirmYes, { backgroundColor: colors.destructive }]}
+                onPress={handleConfirmDelete}
+                activeOpacity={0.7}
+                disabled={deleting}
+              >
+                <Feather name="trash-2" size={14} color="#fff" />
+                <Text style={[styles.deleteButtonText, { color: "#fff" }]}>
+                  {deleting ? "মুছছি..." : "হ্যাঁ, মুছুন"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={[styles.deleteButton, { borderColor: colors.destructive }]}
+            onPress={() => setConfirmingDelete(true)}
+            activeOpacity={0.7}
+          >
+            <Feather name="trash-2" size={16} color={colors.destructive} />
+            <Text style={[styles.deleteButtonText, { color: colors.destructive }]}>
+              Delete Trade
+            </Text>
+          </TouchableOpacity>
+        )}
       </KeyboardAwareScrollViewCompat>
     </View>
   );
@@ -754,4 +776,32 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   deleteButtonText: { fontSize: 15, fontFamily: "Inter_500Medium" },
+  deleteConfirmRow: {
+    gap: 10,
+  },
+  deleteConfirmText: {
+    fontSize: 14,
+    fontFamily: "Inter_500Medium",
+    textAlign: "center",
+  },
+  deleteConfirmButtons: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  deleteConfirmCancel: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 13,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  deleteConfirmYes: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 13,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 6,
+  },
 });
