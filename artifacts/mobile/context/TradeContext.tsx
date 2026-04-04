@@ -1,7 +1,6 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
-const STORAGE_KEY = "@p2p_tracker_v1_trades";
+import { supabase } from "@/lib/supabase";
 
 export interface SellRecord {
   id: string;
@@ -196,10 +195,12 @@ export function TradeProvider({ children }: { children: React.ReactNode }) {
 
   async function loadTrades() {
     try {
-      const raw = await AsyncStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as Record<string, unknown>[];
-        setTrades(parsed.map(migrateTrade));
+      const { data, error } = await supabase
+        .from("trades")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (!error && data) {
+        setTrades((data as Record<string, unknown>[]).map(migrateTrade));
       }
     } catch {
     } finally {
@@ -208,7 +209,15 @@ export function TradeProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function persist(updated: Trade[]) {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    if (updated.length > 0) {
+      await supabase.from("trades").upsert(updated, { onConflict: "id" });
+    }
+    const removedIds = trades
+      .filter((t) => !updated.some((u) => u.id === t.id))
+      .map((t) => t.id);
+    if (removedIds.length > 0) {
+      await supabase.from("trades").delete().in("id", removedIds);
+    }
     setTrades(updated);
   }
 
@@ -341,7 +350,7 @@ export function TradeProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function clearAllTrades() {
-    await AsyncStorage.removeItem(STORAGE_KEY);
+    await supabase.from("trades").delete().not("id", "is", null);
     setTrades([]);
   }
 
