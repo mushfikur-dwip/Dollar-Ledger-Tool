@@ -42,7 +42,9 @@ export function TradeCard({ trade }: TradeCardProps) {
     <TouchableOpacity
       testID={`trade-card-${trade.id}`}
       style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}
-      onPress={() => router.push(`/trade/${trade.id}` as any)}
+      onPress={() =>
+        router.push({ pathname: "/trade/[id]", params: { id: trade.id } })
+      }
       activeOpacity={0.7}
     >
       <View style={styles.row}>

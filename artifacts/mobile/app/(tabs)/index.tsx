@@ -26,6 +26,9 @@ export default function DashboardScreen() {
   const { trades, stats, isLoading } = useTrades();
 
   const openTrades = trades.filter((t) => t.status === "open").slice(0, 5);
+  const recentClosed = trades
+    .filter((t) => t.status === "closed")
+    .slice(0, 3);
 
   const topPadding =
     Platform.OS === "web" ? Math.max(insets.top, 67) : insets.top;
@@ -187,6 +190,29 @@ export default function DashboardScreen() {
           renderItem={({ item }) => <TradeCard trade={item} />}
           scrollEnabled={false}
         />
+      )}
+
+      {recentClosed.length > 0 && (
+        <>
+          <View style={styles.openHeader}>
+            <Text
+              style={[styles.sectionLabel, { color: colors.mutedForeground }]}
+            >
+              RECENTLY CLOSED
+            </Text>
+            <TouchableOpacity onPress={() => router.push("/(tabs)/trades")}>
+              <Text style={[styles.viewAll, { color: colors.primary }]}>
+                View All
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <FlatList
+            data={recentClosed}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => <TradeCard trade={item} />}
+            scrollEnabled={false}
+          />
+        </>
       )}
     </ScrollView>
   );
