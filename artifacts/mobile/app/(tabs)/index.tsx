@@ -28,6 +28,11 @@ export default function DashboardScreen() {
   const openTrades = trades.filter((t) => t.status === "open").slice(0, 5);
   const recentClosed = trades
     .filter((t) => t.status === "closed")
+    .sort((a, b) => {
+      const aTime = a.closed_at ?? a.created_at;
+      const bTime = b.closed_at ?? b.created_at;
+      return bTime.localeCompare(aTime);
+    })
     .slice(0, 3);
 
   const topPadding =
