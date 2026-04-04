@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "hm5wBzs52s7KhvW2Y5INx"
+uri = "file://artifacts/mobile/assets/images/icon.png"
+type = "image"
+title = "p2p trading tracker icon"
