@@ -130,8 +130,14 @@ export default function TradeDetailScreen() {
           style: "destructive",
           onPress: async () => {
             await deleteTrade(tradeId);
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-            router.back();
+            try {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+            } catch {}
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace("/(tabs)/trades");
+            }
           },
         },
       ]
