@@ -50,6 +50,7 @@ interface TradeContextType {
   ) => Promise<void>;
   deleteSell: (tradeId: string, sellId: string) => Promise<void>;
   deleteTrade: (id: string) => Promise<void>;
+  clearAllTrades: () => Promise<void>;
   stats: TradeStats;
   isLoading: boolean;
 }
@@ -265,6 +266,11 @@ export function TradeProvider({ children }: { children: React.ReactNode }) {
     await persist(trades.filter((t) => t.id !== id));
   }
 
+  async function clearAllTrades() {
+    await AsyncStorage.removeItem(STORAGE_KEY);
+    setTrades([]);
+  }
+
   const stats = computeStats(trades);
 
   return (
@@ -275,6 +281,7 @@ export function TradeProvider({ children }: { children: React.ReactNode }) {
         addSell,
         deleteSell,
         deleteTrade,
+        clearAllTrades,
         stats,
         isLoading,
       }}
