@@ -16,12 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { useTrades } from "@/context/TradeContext";
 import { useColors } from "@/hooks/useColors";
-import {
-  calcBuyCost,
-  calcCostPerUsdt,
-  formatBDT,
-  formatRate,
-} from "@/utils/calculations";
+import { formatBDT, formatRate } from "@/utils/calculations";
 
 export default function AddTradeScreen() {
   const colors = useColors();
@@ -30,30 +25,33 @@ export default function AddTradeScreen() {
   const { addTrade } = useTrades();
 
   const [usdt, setUsdt] = useState("");
-  const [buyRate, setBuyRate] = useState("");
-  const [fee, setFee] = useState("0.1");
+  const [totalBdt, setTotalBdt] = useState("");
+  const [bankingCharge, setBankingCharge] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
   const usdtNum = parseFloat(usdt) || 0;
-  const rateNum = parseFloat(buyRate) || 0;
-  const feeNum = parseFloat(fee) || 0;
-  const costPerUsdt = rateNum > 0 ? calcCostPerUsdt(rateNum, feeNum) : 0;
-  const totalCost = usdtNum > 0 && rateNum > 0 ? calcBuyCost(usdtNum, rateNum, feeNum) : 0;
+  const totalBdtNum = parseFloat(totalBdt) || 0;
+  const bankingChargeNum = parseFloat(bankingCharge) || 0;
 
-  const isValid = usdtNum > 0 && rateNum > 0 && feeNum >= 0;
+  const totalCost = totalBdtNum + bankingChargeNum;
+  const buyRate = usdtNum > 0 && totalCost > 0 ? totalCost / usdtNum : 0;
+
+  const isValid = usdtNum > 0 && totalBdtNum > 0;
 
   async function handleSave() {
     if (!isValid) {
-      Alert.alert("Missing Info", "Please enter USDT amount and buy rate.");
+      Alert.alert("Missing Info", "Please enter USDT amount and total BDT paid.");
       return;
     }
     setSaving(true);
     try {
       await addTrade({
         usdt_amount: usdtNum,
-        buy_rate: rateNum,
-        fee_percent: feeNum,
+        buy_rate: buyRate,
+        fee_percent: 0,
+        total_bdt: totalBdtNum,
+        banking_charge: bankingChargeNum > 0 ? bankingChargeNum : undefined,
         notes: notes.trim(),
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -107,32 +105,36 @@ export default function AddTradeScreen() {
           </View>
 
           <View style={styles.field}>
-            <Text style={labelStyle}>Buy Rate (BDT/USDT) *</Text>
+            <Text style={labelStyle}>Total BDT Paid (৳) *</Text>
             <TextInput
               style={inputStyle}
-              placeholder="e.g. 120.50"
+              placeholder="e.g. 12050"
               placeholderTextColor={colors.mutedForeground}
-              value={buyRate}
-              onChangeText={setBuyRate}
+              value={totalBdt}
+              onChangeText={setTotalBdt}
               keyboardType="decimal-pad"
               returnKeyType="next"
-              testID="buy-rate-input"
+              testID="total-bdt-input"
             />
+            <Text style={[styles.hint, { color: colors.mutedForeground }]}>
+              Binance-এ যত টাকা দিয়েছেন তা লিখুন
+            </Text>
           </View>
 
           <View style={styles.field}>
-            <Text style={labelStyle}>Binance Fee % *</Text>
+            <Text style={labelStyle}>Banking Charge (৳)</Text>
             <TextInput
               style={inputStyle}
-              placeholder="e.g. 0.1"
+              placeholder="e.g. 20 (optional)"
               placeholderTextColor={colors.mutedForeground}
-              value={fee}
-              onChangeText={setFee}
+              value={bankingCharge}
+              onChangeText={setBankingCharge}
               keyboardType="decimal-pad"
               returnKeyType="next"
+              testID="banking-charge-input"
             />
             <Text style={[styles.hint, { color: colors.mutedForeground }]}>
-              Standard Binance P2P fee is 0.1%
+              ব্যাংক ট্রান্সফার চার্জ থাকলে লিখুন
             </Text>
           </View>
 
@@ -151,7 +153,7 @@ export default function AddTradeScreen() {
           </View>
         </View>
 
-        {totalCost > 0 ? (
+        {buyRate > 0 ? (
           <View
             style={[
               styles.preview,
@@ -161,22 +163,41 @@ export default function AddTradeScreen() {
             <Text
               style={[styles.previewTitle, { color: colors.secondaryForeground }]}
             >
-              Preview
+              Calculated
             </Text>
+            <View style={styles.previewRow}>
+              <Text style={[styles.previewLabel, { color: colors.mutedForeground }]}>
+                Buy Rate
+              </Text>
+              <Text style={[styles.previewValue, { color: colors.primary }]}>
+                ৳{formatRate(buyRate)}
+              </Text>
+            </View>
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+            <View style={styles.previewRow}>
+              <Text style={[styles.previewLabel, { color: colors.mutedForeground }]}>
+                Binance Payment
+              </Text>
+              <Text style={[styles.previewValue, { color: colors.foreground }]}>
+                {formatBDT(totalBdtNum)}
+              </Text>
+            </View>
+            {bankingChargeNum > 0 && (
+              <View style={styles.previewRow}>
+                <Text style={[styles.previewLabel, { color: colors.mutedForeground }]}>
+                  Banking Charge
+                </Text>
+                <Text style={[styles.previewValue, { color: colors.foreground }]}>
+                  {formatBDT(bankingChargeNum)}
+                </Text>
+              </View>
+            )}
             <View style={styles.previewRow}>
               <Text style={[styles.previewLabel, { color: colors.mutedForeground }]}>
                 Total Cost
               </Text>
               <Text style={[styles.previewValue, { color: colors.foreground }]}>
                 {formatBDT(totalCost)}
-              </Text>
-            </View>
-            <View style={styles.previewRow}>
-              <Text style={[styles.previewLabel, { color: colors.mutedForeground }]}>
-                Cost per USDT
-              </Text>
-              <Text style={[styles.previewValue, { color: colors.foreground }]}>
-                ৳{formatRate(costPerUsdt)}
               </Text>
             </View>
           </View>
@@ -276,6 +297,9 @@ const styles = StyleSheet.create({
   previewValue: {
     fontSize: 16,
     fontFamily: "Inter_600SemiBold",
+  },
+  divider: {
+    height: 1,
   },
   saveButton: {
     borderRadius: 14,

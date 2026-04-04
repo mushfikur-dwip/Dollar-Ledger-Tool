@@ -166,8 +166,24 @@ export default function TradeDetailScreen() {
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
           <View style={styles.detailGrid}>
+            {trade.total_bdt != null && (
+              <DetailRow
+                label="Binance Payment"
+                value={formatBDT(trade.total_bdt)}
+                colors={colors}
+              />
+            )}
+            {trade.banking_charge != null && trade.banking_charge > 0 && (
+              <DetailRow
+                label="Banking Charge"
+                value={formatBDT(trade.banking_charge)}
+                colors={colors}
+              />
+            )}
             <DetailRow label="Buy Rate" value={`৳${formatRate(trade.buy_rate)}`} colors={colors} />
-            <DetailRow label="Fee" value={`${trade.fee_percent}%`} colors={colors} />
+            {trade.fee_percent > 0 && (
+              <DetailRow label="Binance Fee" value={`${trade.fee_percent}%`} colors={colors} />
+            )}
             <DetailRow label="Cost/USDT" value={`৳${formatRate(costPerUsdt)}`} colors={colors} />
             <DetailRow label="Total Cost" value={formatBDT(buyCost)} colors={colors} />
           </View>

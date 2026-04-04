@@ -8,6 +8,8 @@ export interface Trade {
   usdt_amount: number;
   buy_rate: number;
   fee_percent: number;
+  total_bdt?: number;
+  banking_charge?: number;
   notes: string;
   status: "open" | "closed";
   sell_rate?: number;
