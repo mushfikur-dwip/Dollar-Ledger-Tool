@@ -49,6 +49,13 @@ interface TradeContextType {
     notes?: string
   ) => Promise<void>;
   deleteSell: (tradeId: string, sellId: string) => Promise<void>;
+  editSell: (
+    tradeId: string,
+    sellId: string,
+    sell_rate: number,
+    sell_amount: number,
+    notes?: string
+  ) => Promise<void>;
   deleteTrade: (id: string) => Promise<void>;
   clearAllTrades: () => Promise<void>;
   stats: TradeStats;
@@ -246,6 +253,30 @@ export function TradeProvider({ children }: { children: React.ReactNode }) {
     await persist(updated);
   }
 
+  async function editSell(
+    tradeId: string,
+    sellId: string,
+    sell_rate: number,
+    sell_amount: number,
+    notes?: string
+  ) {
+    const updated = trades.map((t) => {
+      if (t.id !== tradeId) return t;
+      const newSells = t.sells.map((s) =>
+        s.id === sellId ? { ...s, sell_rate, sell_amount, notes } : s
+      );
+      const sold = newSells.reduce((acc, s) => acc + s.sell_amount, 0);
+      const isClosed = sold >= t.usdt_amount - 0.0001;
+      return {
+        ...t,
+        sells: newSells,
+        status: isClosed ? ("closed" as const) : ("open" as const),
+        closed_at: isClosed ? t.closed_at ?? new Date().toISOString() : undefined,
+      };
+    });
+    await persist(updated);
+  }
+
   async function deleteSell(tradeId: string, sellId: string) {
     const updated = trades.map((t) => {
       if (t.id !== tradeId) return t;
@@ -279,6 +310,7 @@ export function TradeProvider({ children }: { children: React.ReactNode }) {
         trades,
         addTrade,
         addSell,
+        editSell,
         deleteSell,
         deleteTrade,
         clearAllTrades,
