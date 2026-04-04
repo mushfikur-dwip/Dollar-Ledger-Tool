@@ -31,6 +31,20 @@ export function calcExpectedProfit(
   return revenue - cost;
 }
 
+export function calcSellRevenue(trade: Trade): number {
+  if (trade.status !== "closed" || !trade.sell_rate || !trade.sell_amount)
+    return 0;
+  return trade.sell_rate * trade.sell_amount;
+}
+
+export function calcGrossProfit(trade: Trade): number {
+  if (trade.status !== "closed" || !trade.sell_rate || !trade.sell_amount)
+    return 0;
+  const revenue = calcSellRevenue(trade);
+  const rawCost = trade.buy_rate * trade.sell_amount;
+  return revenue - rawCost;
+}
+
 export function calcClosedProfit(trade: Trade): number {
   if (trade.status !== "closed" || !trade.sell_rate || !trade.sell_amount)
     return 0;

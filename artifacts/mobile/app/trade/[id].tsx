@@ -22,6 +22,8 @@ import {
   calcClosedProfit,
   calcClosedProfitPercent,
   calcCostPerUsdt,
+  calcGrossProfit,
+  calcSellRevenue,
   formatBDT,
   formatDate,
   formatRate,
@@ -50,16 +52,16 @@ export default function TradeDetailScreen() {
     );
   }
 
+  const tradeId = trade.id;
+  const tradeMaxUsdt = trade.usdt_amount;
   const isOpen = trade.status === "open";
-  const buyCost = calcBuyCost(
-    trade.usdt_amount,
-    trade.buy_rate,
-    trade.fee_percent
-  );
+  const buyCost = calcBuyCost(trade.usdt_amount, trade.buy_rate, trade.fee_percent);
   const costPerUsdt = calcCostPerUsdt(trade.buy_rate, trade.fee_percent);
   const customRate = parseFloat(customSellRate) || 0;
   const profit = calcClosedProfit(trade);
   const profitPct = calcClosedProfitPercent(trade);
+  const sellRevenue = calcSellRevenue(trade);
+  const grossProfit = calcGrossProfit(trade);
 
   async function handleDelete() {
     Alert.alert(
@@ -71,7 +73,7 @@ export default function TradeDetailScreen() {
           text: "Delete",
           style: "destructive",
           onPress: async () => {
-            await deleteTrade(trade.id);
+            await deleteTrade(tradeId);
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
             router.back();
           },
@@ -87,16 +89,16 @@ export default function TradeDetailScreen() {
       Alert.alert("Error", "Please enter a valid sell rate.");
       return;
     }
-    if (!amountNum || amountNum <= 0 || amountNum > trade.usdt_amount) {
+    if (!amountNum || amountNum <= 0 || amountNum > tradeMaxUsdt) {
       Alert.alert(
         "Error",
-        `Please enter a valid USDT amount (max ${trade.usdt_amount}).`
+        `Please enter a valid USDT amount (max ${tradeMaxUsdt}).`
       );
       return;
     }
     setClosing(true);
     try {
-      await closeTrade(trade.id, sellRateNum, amountNum);
+      await closeTrade(tradeId, sellRateNum, amountNum);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
     } catch {
@@ -185,17 +187,23 @@ export default function TradeDetailScreen() {
                   colors={colors}
                 />
                 <DetailRow
+                  label="Sell Revenue"
+                  value={formatBDT(sellRevenue)}
+                  colors={colors}
+                />
+                <DetailRow
+                  label="Gross Profit"
+                  value={`${grossProfit >= 0 ? "+" : ""}${formatBDT(grossProfit)}`}
+                  colors={colors}
+                />
+                <DetailRow
                   label="Closed"
-                  value={
-                    trade.closed_at
-                      ? `${formatDate(trade.closed_at)}`
-                      : "-"
-                  }
+                  value={trade.closed_at ? formatDate(trade.closed_at) : "-"}
                   colors={colors}
                 />
                 <View style={styles.profitHighlight}>
                   <Text style={[styles.profitLabel, { color: colors.mutedForeground }]}>
-                    Net Profit
+                    Net Profit (after fees)
                   </Text>
                   <Text style={[styles.profitValue, { color: profitColor }]}>
                     {profit >= 0 ? "+" : "-"}
@@ -307,7 +315,7 @@ export default function TradeDetailScreen() {
                         color: colors.foreground,
                       },
                     ]}
-                    placeholder={`Max ${trade.usdt_amount}`}
+                    placeholder={`Max ${tradeMaxUsdt}`}
                     placeholderTextColor={colors.mutedForeground}
                     value={closeAmount}
                     onChangeText={setCloseAmount}
