@@ -3,7 +3,6 @@ import { useRouter } from "expo-router";
 import React from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Platform,
   ScrollView,
@@ -24,22 +23,7 @@ export default function DashboardScreen() {
   const colors = useColors();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { trades, stats, isLoading, clearAllTrades } = useTrades();
-
-  function handleClearData() {
-    Alert.alert(
-      "সব ডাটা মুছবেন?",
-      "সকল ট্রেড ও বিক্রির তথ্য মুছে যাবে। এটি পূর্বাবস্থায় ফেরানো যাবে না।",
-      [
-        { text: "বাতিল", style: "cancel" },
-        {
-          text: "হ্যাঁ, মুছুন",
-          style: "destructive",
-          onPress: () => clearAllTrades(),
-        },
-      ]
-    );
-  }
+  const { trades, stats, isLoading } = useTrades();
 
   const openTrades = trades.filter((t) => t.status === "open").slice(0, 5);
   const recentClosed = trades
@@ -89,15 +73,6 @@ export default function DashboardScreen() {
           </Text>
         </View>
         <View style={styles.headerButtons}>
-          {trades.length > 0 && (
-            <TouchableOpacity
-              style={[styles.clearButton, { backgroundColor: colors.muted }]}
-              onPress={handleClearData}
-              activeOpacity={0.8}
-            >
-              <Feather name="trash-2" size={18} color={colors.destructive} />
-            </TouchableOpacity>
-          )}
           <TouchableOpacity
             style={[styles.addButton, { backgroundColor: colors.primary }]}
             onPress={() => router.push("/add-trade")}
@@ -281,13 +256,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-  },
-  clearButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
   },
   addButton: {
     width: 44,
