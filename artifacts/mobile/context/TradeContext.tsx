@@ -48,6 +48,7 @@ interface TradeContextType {
     sell_amount: number,
     notes?: string
   ) => Promise<void>;
+  addGlobalSell: (sell_rate: number, total_amount: number, notes?: string) => Promise<void>;
   deleteSell: (tradeId: string, sellId: string) => Promise<void>;
   editSell: (
     tradeId: string,
@@ -253,6 +254,48 @@ export function TradeProvider({ children }: { children: React.ReactNode }) {
     await persist(updated);
   }
 
+  async function addGlobalSell(sell_rate: number, total_amount: number, notes?: string) {
+    const openTrades = trades
+      .filter((t) => t.status === "open")
+      .sort((a, b) => a.created_at.localeCompare(b.created_at));
+
+    let remaining = total_amount;
+    const now = new Date().toISOString();
+    let updatedTrades = [...trades];
+
+    for (const trade of openTrades) {
+      if (remaining <= 0.0001) break;
+      const soldAlready = trade.sells.reduce((acc, s) => acc + s.sell_amount, 0);
+      const available = Math.max(0, trade.usdt_amount - soldAlready);
+      if (available <= 0.0001) continue;
+      const sellFromThis = Math.min(remaining, available);
+      remaining -= sellFromThis;
+
+      const newSell: SellRecord = {
+        id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
+        sell_rate,
+        sell_amount: sellFromThis,
+        sold_at: now,
+        notes,
+      };
+
+      updatedTrades = updatedTrades.map((t) => {
+        if (t.id !== trade.id) return t;
+        const newSells = [...t.sells, newSell];
+        const totalSold = newSells.reduce((acc, s) => acc + s.sell_amount, 0);
+        const isClosed = totalSold >= t.usdt_amount - 0.0001;
+        return {
+          ...t,
+          sells: newSells,
+          status: isClosed ? ("closed" as const) : ("open" as const),
+          closed_at: isClosed ? now : t.closed_at,
+        };
+      });
+    }
+
+    await persist(updatedTrades);
+  }
+
   async function editSell(
     tradeId: string,
     sellId: string,
@@ -310,6 +353,7 @@ export function TradeProvider({ children }: { children: React.ReactNode }) {
         trades,
         addTrade,
         addSell,
+        addGlobalSell,
         editSell,
         deleteSell,
         deleteTrade,

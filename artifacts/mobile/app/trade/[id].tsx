@@ -3,7 +3,6 @@ import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  Alert,
   Platform,
   StyleSheet,
   Text,
@@ -36,18 +35,13 @@ import {
 
 export default function TradeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { trades, addSell, editSell, deleteSell, deleteTrade } = useTrades();
+  const { trades, editSell, deleteSell, deleteTrade } = useTrades();
   const colors = useColors();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
   const trade = trades.find((t) => t.id === id);
   const [customSellRate, setCustomSellRate] = useState("");
-  const [showSellForm, setShowSellForm] = useState(false);
-  const [sellRate, setSellRate] = useState("");
-  const [sellAmount, setSellAmount] = useState("");
-  const [sellNotes, setSellNotes] = useState("");
-  const [saving, setSaving] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [sellAction, setSellAction] = useState<{
@@ -79,41 +73,6 @@ export default function TradeDetailScreen() {
   const totalProfit = calcClosedProfit(trade);
   const totalProfitPct = calcClosedProfitPercent(trade);
   const avgSellRate = calcAvgSellRate(trade);
-
-  const sellRateNum = parseFloat(sellRate) || 0;
-  const sellAmountNum = parseFloat(sellAmount) || 0;
-  const previewRevenue = sellRateNum * sellAmountNum;
-  const previewProfit =
-    sellRateNum > 0 && sellAmountNum > 0
-      ? previewRevenue - costPerUsdt * sellAmountNum
-      : 0;
-
-  async function handleAddSell() {
-    if (!sellRateNum || sellRateNum <= 0) {
-      Alert.alert("Error", "Please enter a valid sell rate.");
-      return;
-    }
-    if (!sellAmountNum || sellAmountNum <= 0 || sellAmountNum > remainingUsdt + 0.0001) {
-      Alert.alert(
-        "Error",
-        `Please enter a valid USDT amount (max ${remainingUsdt.toFixed(4)}).`
-      );
-      return;
-    }
-    setSaving(true);
-    try {
-      await addSell(tradeId, sellRateNum, sellAmountNum, sellNotes.trim() || undefined);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setSellRate("");
-      setSellAmount("");
-      setSellNotes("");
-      setShowSellForm(false);
-    } catch {
-      Alert.alert("Error", "Could not record sale.");
-    } finally {
-      setSaving(false);
-    }
-  }
 
   function openSellDelete(sell: SellRecord) {
     setSellAction({ id: sell.id, mode: "delete", editRate: "", editAmount: "", editNotes: "" });
@@ -534,157 +493,17 @@ export default function TradeDetailScreen() {
         )}
 
         {isOpen && (
-          <>
-            {!showSellForm ? (
-              <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: colors.success }]}
-                onPress={() => setShowSellForm(true)}
-                activeOpacity={0.8}
-              >
-                <Feather name="plus-circle" size={18} color="#fff" />
-                <Text style={styles.actionButtonText}>
-                  নতুন বিক্রি রেকর্ড করুন
-                </Text>
-              </TouchableOpacity>
-            ) : (
-              <View
-                style={[
-                  styles.sellForm,
-                  { backgroundColor: colors.card, borderColor: colors.border },
-                ]}
-              >
-                <Text style={[styles.sellFormTitle, { color: colors.foreground }]}>
-                  বিক্রি রেকর্ড ({remainingUsdt.toFixed(4)} USDT বাকি)
-                </Text>
-
-                <View style={styles.field}>
-                  <Text style={[styles.label, { color: colors.mutedForeground }]}>
-                    Sell Rate (BDT/USDT) *
-                  </Text>
-                  <TextInput
-                    style={[
-                      styles.input,
-                      {
-                        borderColor: colors.border,
-                        backgroundColor: colors.muted,
-                        color: colors.foreground,
-                      },
-                    ]}
-                    placeholder="e.g. 123.50"
-                    placeholderTextColor={colors.mutedForeground}
-                    value={sellRate}
-                    onChangeText={setSellRate}
-                    keyboardType="decimal-pad"
-                  />
-                </View>
-
-                <View style={styles.field}>
-                  <Text style={[styles.label, { color: colors.mutedForeground }]}>
-                    USDT Amount *
-                  </Text>
-                  <TextInput
-                    style={[
-                      styles.input,
-                      {
-                        borderColor: colors.border,
-                        backgroundColor: colors.muted,
-                        color: colors.foreground,
-                      },
-                    ]}
-                    placeholder={`Max ${remainingUsdt.toFixed(4)}`}
-                    placeholderTextColor={colors.mutedForeground}
-                    value={sellAmount}
-                    onChangeText={setSellAmount}
-                    keyboardType="decimal-pad"
-                  />
-                </View>
-
-                <View style={styles.field}>
-                  <Text style={[styles.label, { color: colors.mutedForeground }]}>
-                    Notes (optional)
-                  </Text>
-                  <TextInput
-                    style={[
-                      styles.input,
-                      {
-                        borderColor: colors.border,
-                        backgroundColor: colors.muted,
-                        color: colors.foreground,
-                      },
-                    ]}
-                    placeholder="e.g. Customer name..."
-                    placeholderTextColor={colors.mutedForeground}
-                    value={sellNotes}
-                    onChangeText={setSellNotes}
-                  />
-                </View>
-
-                {sellRateNum > 0 && sellAmountNum > 0 && (
-                  <View
-                    style={[
-                      styles.previewBox,
-                      { backgroundColor: colors.muted, borderColor: colors.border },
-                    ]}
-                  >
-                    <View style={styles.previewRow}>
-                      <Text style={[styles.previewLabel, { color: colors.mutedForeground }]}>
-                        Revenue
-                      </Text>
-                      <Text style={[styles.previewValue, { color: colors.foreground }]}>
-                        {formatBDT(previewRevenue)}
-                      </Text>
-                    </View>
-                    <View style={styles.previewRow}>
-                      <Text style={[styles.previewLabel, { color: colors.mutedForeground }]}>
-                        Profit
-                      </Text>
-                      <Text
-                        style={[
-                          styles.previewValue,
-                          {
-                            color:
-                              previewProfit >= 0
-                                ? colors.success
-                                : colors.destructive,
-                          },
-                        ]}
-                      >
-                        {previewProfit >= 0 ? "+" : ""}
-                        {formatBDT(previewProfit)}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-
-                <View style={styles.sellFormButtons}>
-                  <TouchableOpacity
-                    style={[styles.cancelBtn, { borderColor: colors.border }]}
-                    onPress={() => {
-                      setShowSellForm(false);
-                      setSellRate("");
-                      setSellAmount("");
-                      setSellNotes("");
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[styles.cancelBtnText, { color: colors.mutedForeground }]}>
-                      Cancel
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.confirmBtn, { backgroundColor: colors.success }]}
-                    onPress={handleAddSell}
-                    disabled={saving}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.confirmBtnText}>
-                      {saving ? "Saving..." : "Save Sale"}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
-          </>
+          <TouchableOpacity
+            style={[styles.sellHint, { backgroundColor: colors.success + "18", borderColor: colors.success + "44" }]}
+            onPress={() => router.navigate({ pathname: "/(tabs)/sell" })}
+            activeOpacity={0.7}
+          >
+            <Feather name="dollar-sign" size={16} color={colors.success} />
+            <Text style={[styles.sellHintText, { color: colors.success }]}>
+              বিক্রি করতে "বিক্রি" ট্যাবে যান
+            </Text>
+            <Feather name="arrow-right" size={14} color={colors.success} />
+          </TouchableOpacity>
         )}
 
         {confirmingDelete ? (
@@ -840,6 +659,16 @@ const styles = StyleSheet.create({
   sellStatLabel: { fontSize: 10, fontFamily: "Inter_500Medium", textTransform: "uppercase" },
   sellStatValue: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
   sellNotes: { fontSize: 12, fontFamily: "Inter_400Regular", fontStyle: "italic" },
+  sellHint: {
+    flexDirection: "row",
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: "center",
+    gap: 8,
+  },
+  sellHintText: { flex: 1, fontSize: 14, fontFamily: "Inter_500Medium" },
   actionButton: {
     flexDirection: "row",
     borderRadius: 14,

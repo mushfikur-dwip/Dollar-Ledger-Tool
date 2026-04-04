@@ -20,6 +20,10 @@ function NativeTabLayout() {
         <Icon sf={{ default: "arrow.left.arrow.right", selected: "arrow.left.arrow.right.circle.fill" }} />
         <Label>Trades</Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="sell">
+        <Icon sf={{ default: "dollarsign.circle", selected: "dollarsign.circle.fill" }} />
+        <Label>বিক্রি</Label>
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="calculator">
         <Icon sf={{ default: "function", selected: "function" }} />
         <Label>Calculator</Label>
@@ -91,6 +95,18 @@ function ClassicTabLayout() {
               <SymbolView name="arrow.left.arrow.right" tintColor={color} size={24} />
             ) : (
               <Feather name="trending-up" size={22} color={color} />
+            ),
+        }}
+      />
+      <Tabs.Screen
+        name="sell"
+        options={{
+          title: "বিক্রি",
+          tabBarIcon: ({ color }) =>
+            isIOS ? (
+              <SymbolView name="dollarsign.circle" tintColor={color} size={24} />
+            ) : (
+              <Feather name="dollar-sign" size={22} color={color} />
             ),
         }}
       />
