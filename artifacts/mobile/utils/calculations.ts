@@ -1,4 +1,4 @@
-import type { Trade } from "@/context/TradeContext";
+import type { SellRecord, Trade } from "@/context/TradeContext";
 
 export function calcCostPerUsdt(buy_rate: number, fee_percent: number): number {
   return buy_rate * (1 + fee_percent / 100);
@@ -31,36 +31,49 @@ export function calcExpectedProfit(
   return revenue - cost;
 }
 
-export function calcSellRevenue(trade: Trade): number {
-  if (trade.status !== "closed" || !trade.sell_rate || !trade.sell_amount)
-    return 0;
-  return trade.sell_rate * trade.sell_amount;
+export function calcSoldUsdt(trade: Trade): number {
+  return trade.sells.reduce((acc, s) => acc + s.sell_amount, 0);
 }
 
-export function calcGrossProfit(trade: Trade): number {
-  if (trade.status !== "closed" || !trade.sell_rate || !trade.sell_amount)
-    return 0;
-  const revenue = calcSellRevenue(trade);
-  const rawCost = trade.buy_rate * trade.sell_amount;
-  return revenue - rawCost;
+export function calcRemainingUsdt(trade: Trade): number {
+  return Math.max(0, trade.usdt_amount - calcSoldUsdt(trade));
+}
+
+export function calcSellRevenue(trade: Trade): number {
+  return trade.sells.reduce((acc, s) => acc + s.sell_rate * s.sell_amount, 0);
+}
+
+export function calcSellProfit(
+  sell: SellRecord,
+  buy_rate: number,
+  fee_percent: number
+): number {
+  const costPerUsdt = calcCostPerUsdt(buy_rate, fee_percent);
+  return sell.sell_rate * sell.sell_amount - costPerUsdt * sell.sell_amount;
 }
 
 export function calcClosedProfit(trade: Trade): number {
-  if (trade.status !== "closed" || !trade.sell_rate || !trade.sell_amount)
-    return 0;
-  const revenue = trade.sell_rate * trade.sell_amount;
-  const cost =
-    calcCostPerUsdt(trade.buy_rate, trade.fee_percent) * trade.sell_amount;
-  return revenue - cost;
+  const costPerUsdt = calcCostPerUsdt(trade.buy_rate, trade.fee_percent);
+  return trade.sells.reduce((acc, s) => {
+    const revenue = s.sell_rate * s.sell_amount;
+    const cost = costPerUsdt * s.sell_amount;
+    return acc + (revenue - cost);
+  }, 0);
 }
 
 export function calcClosedProfitPercent(trade: Trade): number {
-  if (trade.status !== "closed" || !trade.sell_rate || !trade.sell_amount)
-    return 0;
-  const cost =
-    calcCostPerUsdt(trade.buy_rate, trade.fee_percent) * trade.sell_amount;
+  const soldUsdt = calcSoldUsdt(trade);
+  if (soldUsdt === 0) return 0;
+  const cost = calcBuyCost(soldUsdt, trade.buy_rate, trade.fee_percent);
   if (cost === 0) return 0;
   return (calcClosedProfit(trade) / cost) * 100;
+}
+
+export function calcAvgSellRate(trade: Trade): number {
+  const soldUsdt = calcSoldUsdt(trade);
+  if (soldUsdt === 0) return 0;
+  const totalRevenue = calcSellRevenue(trade);
+  return totalRevenue / soldUsdt;
 }
 
 export function formatBDT(amount: number): string {

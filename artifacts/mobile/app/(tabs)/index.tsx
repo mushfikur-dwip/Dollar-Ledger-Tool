@@ -91,8 +91,8 @@ export default function DashboardScreen() {
         contentContainerStyle={styles.cardRow}
       >
         <SummaryCard
-          title="Open USDT"
-          value={`${stats.totalOpenUsdt.toFixed(2)}`}
+          title="বাকি USDT"
+          value={`${stats.totalRemainingUsdt.toFixed(2)}`}
           subtitle="USDT"
           valueColor={colors.primary}
         />

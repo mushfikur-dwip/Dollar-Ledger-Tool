@@ -14,6 +14,8 @@ import {
   calcBuyCost,
   calcClosedProfit,
   calcClosedProfitPercent,
+  calcRemainingUsdt,
+  calcSoldUsdt,
   formatBDT,
   formatDate,
   formatRate,
@@ -29,11 +31,10 @@ export function TradeCard({ trade }: TradeCardProps) {
   const isOpen = trade.status === "open";
   const profit = calcClosedProfit(trade);
   const profitPct = calcClosedProfitPercent(trade);
-  const buyCost = calcBuyCost(
-    trade.usdt_amount,
-    trade.buy_rate,
-    trade.fee_percent
-  );
+  const buyCost = calcBuyCost(trade.usdt_amount, trade.buy_rate, trade.fee_percent);
+  const soldUsdt = calcSoldUsdt(trade);
+  const remainingUsdt = calcRemainingUsdt(trade);
+  const hasSomeSells = trade.sells.length > 0;
 
   const profitColor =
     profit > 0 ? colors.success : profit < 0 ? colors.destructive : colors.mutedForeground;
@@ -65,9 +66,7 @@ export function TradeCard({ trade }: TradeCardProps) {
                 style={[
                   styles.badgeText,
                   {
-                    color: isOpen
-                      ? colors.primary
-                      : colors.mutedForeground,
+                    color: isOpen ? colors.primary : colors.mutedForeground,
                   },
                 ]}
               >
@@ -75,12 +74,22 @@ export function TradeCard({ trade }: TradeCardProps) {
               </Text>
             </View>
           </View>
+
+          {isOpen && hasSomeSells && (
+            <View style={styles.progressRow}>
+              <Text style={[styles.progressText, { color: colors.mutedForeground }]}>
+                বাকি: {remainingUsdt.toFixed(2)} · বিক্রি: {soldUsdt.toFixed(2)}
+              </Text>
+            </View>
+          )}
+
           <Text style={[styles.meta, { color: colors.mutedForeground }]}>
-            Buy: ৳{formatRate(trade.buy_rate)} · Fee: {trade.fee_percent}%
+            Buy: ৳{formatRate(trade.buy_rate)} · Cost: {formatBDT(buyCost)}
           </Text>
           <Text style={[styles.meta, { color: colors.mutedForeground }]}>
-            Cost: {formatBDT(buyCost)} · {formatDate(trade.created_at)}
+            {formatDate(trade.created_at)}
           </Text>
+
           {trade.notes ? (
             <Text
               style={[styles.notes, { color: colors.mutedForeground }]}
@@ -90,14 +99,25 @@ export function TradeCard({ trade }: TradeCardProps) {
             </Text>
           ) : null}
         </View>
+
         <View style={styles.right}>
           {isOpen ? (
-            <Feather name="chevron-right" size={20} color={colors.mutedForeground} />
+            hasSomeSells ? (
+              <View style={styles.partialProfit}>
+                <Text style={[styles.partialLabel, { color: colors.mutedForeground }]}>
+                  লাভ এখন পর্যন্ত
+                </Text>
+                <Text style={[styles.profitAmount, { color: profitColor }]}>
+                  {profit >= 0 ? "+" : ""}
+                  {formatBDT(profit)}
+                </Text>
+              </View>
+            ) : (
+              <Feather name="chevron-right" size={20} color={colors.mutedForeground} />
+            )
           ) : (
             <View style={styles.profitContainer}>
-              <Text
-                style={[styles.profitAmount, { color: profitColor }]}
-              >
+              <Text style={[styles.profitAmount, { color: profitColor }]}>
                 {profit >= 0 ? "+" : "-"}
                 {formatBDT(Math.abs(profit))}
               </Text>
@@ -151,6 +171,15 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
     letterSpacing: 0.5,
   },
+  progressRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  progressText: {
+    fontSize: 12,
+    fontFamily: "Inter_500Medium",
+  },
   meta: {
     fontSize: 13,
     fontFamily: "Inter_400Regular",
@@ -159,6 +188,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "Inter_400Regular",
     fontStyle: "italic",
+  },
+  partialProfit: {
+    alignItems: "flex-end",
+    gap: 2,
+  },
+  partialLabel: {
+    fontSize: 10,
+    fontFamily: "Inter_400Regular",
   },
   profitContainer: {
     alignItems: "flex-end",
