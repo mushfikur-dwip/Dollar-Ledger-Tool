@@ -1,0 +1,7 @@
+{
+  "buildCommand": "pnpm --filter @workspace/mobile run build",
+  "outputDirectory": "artifacts/mobile/dist",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
