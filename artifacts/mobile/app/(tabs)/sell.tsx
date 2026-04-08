@@ -95,6 +95,24 @@ export default function SellScreen() {
 
   const openTradeCount = trades.filter((t) => t.status === "open").length;
 
+  const recentCustomers = useMemo(() => {
+    const allSells = trades
+      .flatMap((t) => t.sells)
+      .filter((s) => s.notes && s.notes.trim().length > 0)
+      .sort((a, b) => b.sold_at.localeCompare(a.sold_at));
+    const seen = new Set<string>();
+    const result: string[] = [];
+    for (const s of allSells) {
+      const name = s.notes!.trim();
+      if (!seen.has(name)) {
+        seen.add(name);
+        result.push(name);
+      }
+      if (result.length === 3) break;
+    }
+    return result;
+  }, [trades]);
+
   const recentRates = useMemo(() => {
     const allSells = trades
       .flatMap((t) => t.sells)
@@ -204,7 +222,7 @@ export default function SellScreen() {
             </View>
 
             <View style={styles.field}>
-              <Text style={[styles.label, { color: colors.mutedForeground }]}>নোট (ঐচ্ছিক)</Text>
+              <Text style={[styles.label, { color: colors.mutedForeground }]}>নোট / কাস্টমার নাম (ঐচ্ছিক)</Text>
               <TextInput
                 style={[styles.input, { borderColor: colors.border, backgroundColor: colors.muted, color: colors.foreground }]}
                 placeholder="যেমন: কাস্টমার নাম..."
@@ -212,6 +230,29 @@ export default function SellScreen() {
                 value={notes}
                 onChangeText={setNotes}
               />
+              {recentCustomers.length > 0 && (
+                <View style={styles.chipRow}>
+                  <Text style={[styles.chipLabel, { color: colors.mutedForeground }]}>সর্বশেষ:</Text>
+                  {recentCustomers.map((name) => (
+                    <TouchableOpacity
+                      key={name}
+                      style={[
+                        styles.chip,
+                        {
+                          backgroundColor: notes === name ? colors.primary : colors.muted,
+                          borderColor: notes === name ? colors.primary : colors.border,
+                        },
+                      ]}
+                      onPress={() => setNotes(notes === name ? "" : name)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.chipText, { color: notes === name ? "#fff" : colors.foreground }]}>
+                        {name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
             </View>
           </View>
 
