@@ -95,6 +95,22 @@ export default function SellScreen() {
 
   const openTradeCount = trades.filter((t) => t.status === "open").length;
 
+  const recentRates = useMemo(() => {
+    const allSells = trades
+      .flatMap((t) => t.sells)
+      .sort((a, b) => b.sold_at.localeCompare(a.sold_at));
+    const seen = new Set<number>();
+    const result: number[] = [];
+    for (const s of allSells) {
+      if (!seen.has(s.sell_rate)) {
+        seen.add(s.sell_rate);
+        result.push(s.sell_rate);
+      }
+      if (result.length === 3) break;
+    }
+    return result;
+  }, [trades]);
+
   return (
     <KeyboardAwareScrollViewCompat
       style={{ backgroundColor: colors.background }}
@@ -143,6 +159,29 @@ export default function SellScreen() {
                 onChangeText={setRate}
                 keyboardType="decimal-pad"
               />
+              {recentRates.length > 0 && (
+                <View style={styles.chipRow}>
+                  <Text style={[styles.chipLabel, { color: colors.mutedForeground }]}>সর্বশেষ:</Text>
+                  {recentRates.map((r) => (
+                    <TouchableOpacity
+                      key={r}
+                      style={[
+                        styles.chip,
+                        {
+                          backgroundColor: rate === String(r) ? colors.primary : colors.muted,
+                          borderColor: rate === String(r) ? colors.primary : colors.border,
+                        },
+                      ]}
+                      onPress={() => setRate(String(r))}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.chipText, { color: rate === String(r) ? "#fff" : colors.foreground }]}>
+                        ৳{formatRate(r)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
             </View>
 
             <View style={styles.field}>
@@ -330,4 +369,13 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   sellButtonText: { fontSize: 16, fontFamily: "Inter_600SemiBold" },
+  chipRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 6 },
+  chipLabel: { fontSize: 12, fontFamily: "Inter_500Medium" },
+  chip: {
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+  },
+  chipText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
 });
